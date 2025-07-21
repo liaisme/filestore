@@ -1,0 +1,256 @@
+{
+  "log": {
+    "level": "error",
+    "timestamp": true
+  },
+  "dns": {
+    "servers": [
+      {
+        "type": "tls",
+        "tag": "dns_internet",
+        "detour": "Internet",
+        "server": "one.one.one.one",
+        "server_port": 853,
+        "tls": {
+          "server_name": "one.one.one.one"
+        }
+      },
+      {
+        "type": "https",
+        "tag": "dns_direct",
+        "detour": "direct",
+        "server": "https://cloudflare-dns.com/dns-query",
+        "server_port": 0
+      },
+      {
+        "type": "local",
+        "tag": "dns_local"
+      },
+      {
+        "type": "predefined",
+        "tag": "dns_refused",
+        "responses": [
+          {
+            "rcode": "REFUSED"
+          }
+        ]
+      },
+      {
+        "type": "fakeip",
+        "tag": "fakeip",
+        "inet4_range": "198.18.0.0/15",
+        "inet6_range": "fc00::/18"
+      }
+    ],
+    "rules": [
+      {
+        "query_type": ["A", "AAAA"],
+        "server": "fakeip"
+      }
+    ]
+  },
+  "inbounds": [
+    {
+      "type": "tun",
+      "tag": "tun-in",
+      "mtu": 1492,
+      "address": ["172.16.0.1/30", "fd00::1/126"],
+      "auto_route": true,
+      "strict_route": true,
+      "stack": "system"
+    }
+  ],
+  "outbounds": [
+    {
+      "type": "selector",
+      "tag": "Internet",
+      "outbounds": ["GAME", "Best Latency", "direct"],
+      "default": ""
+    },
+    {
+      "type": "urltest",
+      "tag": "GAME",
+      "outbounds": [],
+      "url": "https://www.gstatic.com/generate_204",
+      "interval": "1m0s"
+    },
+    {
+      "type": "urltest",
+      "tag": "Best Latency",
+      "outbounds": [],
+      "url": "https://www.gstatic.com/generate_204",
+      "interval": "1m0s"
+    },
+    {
+      "type": "direct",
+      "tag": "direct"
+    },
+    {
+      "type": "block",
+      "tag": "block"
+    }
+  ],
+  "route": {
+    "rules": [
+      {
+        "inbound": "tun-in",
+        "action": "sniff"
+      },
+      {
+        "protocol": "dns",
+        "action": "hijack-dns"
+      },
+      {
+        "ip_cidr": [
+          "0.0.0.0/8",
+          "172.64.149.213/10",
+          "127.0.0.0/8",
+          "198.18.0.0/15",
+          "fc00::/18",
+          "::/128",
+          "::1/128"
+        ],
+        "action": "reject",
+        "method": "default"
+      },
+      {
+        "network": "tcp",
+        "port": 853,
+        "action": "reject",
+        "method": "default"
+      },
+      {
+        "network": "udp",
+        "port": [443, 853],
+        "action": "reject",
+        "method": "default"
+      },
+      {
+        "ip_is_private": true,
+        "outbound": "direct"
+      },
+      {
+        "rule_set": "geosite-megamori",
+        "action": "reject",
+        "method": "drop"
+      },
+      {
+        "rule_set": ["geosite-vercel", "geosite-youtube"],
+        "outbound": "Internet"
+      },
+      {
+        "process_name": "com.garena.game.df",
+        "outbound": "GAME"
+      },
+      {
+        "domain_keyword": [
+          "garena",
+          "gcloud",
+          "insea",
+          "appsflyersdk",
+          "onezapp",
+          "wetest",
+          "listdl",
+          "intlgame",
+          "tdatamaster",
+          "anticheatexpert"
+        ],
+        "outbound": "GAME"
+      },
+      {
+        "ip_cidr": [
+          "202.81.112.0/22",
+          "31.13.95.1/32",
+          "101.32.0.0/16",
+          "119.28.0.0/16",
+          "18.154.4.0/24",
+          "18.161.52.0/24",
+          "43.156.0.0/16",
+          "150.109.0.0/16",
+          "43.153.0.0/16",
+          "140.213.23.0/24",
+          "43.134.0.0/16",
+          "43.152.0.0/16",
+          "211.152.129.11/32",
+          "34.126.230.4/32",
+          "43.175.226.204/32",
+          "129.226.2.37/32",
+          "49.51.67.200/32",
+          "107.151.184.0/24",
+          "162.62.56.0/24",
+          "124.156.116.52/32",
+          "43.133.0.0/16",
+          "101.44.189.122/32",
+          "128.14.38.0/24",
+          "98.96.214.0/24",
+          "43.157.0.0/16",
+          "80.238.136.0/23",
+          "142.251.12.95/32",
+          "43.173.43.168/32",
+          "112.215.101.67/32",
+          "57.144.100.141/32",
+          "3.168.198.0/24",
+          "122.8.185.70/32",
+          "23.219.184.225/32",
+          "18.67.171.56/32"
+        ],
+        "outbound": "GAME"
+      },
+      {
+        "network": "tcp",
+        "port": [
+          80, 443, 8011, 8013, 8085, 8700, 17986, 17990, 20000, 28000, 55010
+        ],
+        "outbound": "GAME"
+      },
+      {
+        "network": "udp",
+        "port": [8011, 8013, 8085, 8700, 17986, 17990, 20000, 28000, 55010],
+        "outbound": "GAME"
+      }
+    ],
+    "rule_set": [
+      {
+        "type": "remote",
+        "tag": "geosite-vercel",
+        "format": "binary",
+        "url": "https://raw.githubusercontent.com/malikshi/sing-box-geo/rule-set-geosite/geosite-vercel.srs",
+        "download_detour": "Internet"
+      },
+      {
+        "type": "remote",
+        "tag": "geosite-youtube",
+        "format": "binary",
+        "url": "https://raw.githubusercontent.com/malikshi/sing-box-geo/rule-set-geosite/geosite-youtube.srs",
+        "download_detour": "Internet"
+      },
+      {
+        "type": "remote",
+        "tag": "geosite-megamori",
+        "format": "binary",
+        "url": "https://raw.githubusercontent.com/neomikanagi/megamori/main/megamori.srs",
+        "download_detour": "Internet"
+      }
+    ],
+    "final": "Internet",
+    "auto_detect_interface": true,
+    "default_domain_resolver": {
+      "server": "dns_local",
+      "rewrite_ttl": 60,
+      "client_subnet": "1.1.1.1"
+    }
+  },
+  "experimental": {
+    "cache_file": {
+      "enabled": true,
+      "path": "cache.db"
+    },
+    "clash_api": {
+      "external_controller": "127.0.0.1:9090",
+      "external_ui": "ui",
+      "external_ui_download_url": "https://github.com/Zephyruso/zashboard/releases/latest/download/dist.zip",
+      "external_ui_download_detour": "Internet",
+      "default_mode": "rule"
+    }
+  }
+}
