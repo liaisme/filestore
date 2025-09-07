@@ -1,0 +1,88 @@
+port: 7890
+socks-port: 7891
+redir-port: 7892
+mixed-port: 7893
+tproxy-port: 7895
+ipv6: false
+mode: rule
+log-level: silent
+allow-lan: true
+external-controller: 0.0.0.0:9090
+secret: 
+bind-address: "*"
+unified-delay: true
+profile:
+  store-selected: true
+dns:
+  enable: true
+  ipv6: false
+  enhanced-mode: redir-host
+  listen: 0.0.0.0:7874
+  nameserver:
+    - "8.8.8.8"
+    - "1.0.0.1"
+    - "https://dns.google/dns-query"
+  fallback:
+    - "1.1.1.1"
+    - "8.8.4.4"
+    - "https://cloudflare-dns.com/dns-query"
+    - "112.215.203.254"
+    - "112.215.198.248"
+  default-nameserver:
+    - "8.8.8.8"
+    - "1.1.1.1"
+    - "112.215.203.254"
+    - "112.215.198.248"
+proxies:
+
+proxy-groups:
+  - name: INTERNET
+    type: select
+    proxies:
+      - "LOAD-BALANCE"
+      - "BEST-PING"
+      - "FALLBACK"
+      - "DIRECT"
+
+  - name: LOAD-BALANCE
+    type: load-balance
+    strategy: consistent-hashing
+    url: http://hi.bonds.id/ping
+    interval: 300
+
+  - name: BEST-PING
+    type: url-test
+    url: http://captive.apple.com
+    interval: 100
+    tolerance: 50
+    
+  - name: FALLBACK
+    type: fallback
+    url: http://cp.cloudflare.com/generate_204
+    interval: 100
+    
+  - name: ADS
+    type: select
+    disable-udp: false
+    proxies:
+    - REJECT
+    - DIRECT
+    - INTERNET
+
+rule-providers:
+  oisd_big:
+    type: http
+    behavior: domain
+    format: text
+    path: "./rule_provider/oisd_big.txt"
+    url: https://raw.githubusercontent.com/zzzt27/clash-AdsBlock/main/oisd_big.txt
+    interval: 86400
+rules:
+  - NETWORK,tcp,INTERNET
+  - DOMAIN-KEYWORD,doubleclick,ADS
+  - DOMAIN-SUFFIX,googlesyndication.com,ADS
+  - DOMAIN-SUFFIX,adservice.google.com,ADS
+  - DOMAIN-SUFFIX,pubadx.one,ADS
+  - RULE-SET,oisd_big,ADS
+  - "MATCH,INTERNET"
+
